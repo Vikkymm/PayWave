@@ -1,3 +1,4 @@
+cat ~/PayWave/app.py
 #!/usr/bin/env python3
 """
 PayWave - single-file Flask app starter
