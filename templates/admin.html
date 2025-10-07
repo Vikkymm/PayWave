@@ -70,12 +70,14 @@
     <div class="card p-3 shadow-sm">
       <h6>Withdrawals</h6>
       <table class="table">
-        <thead><tr><th>User</th><th>Bank</th><th>Amount (₦)</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>User</th><th>Name</th><th>Bank</th><th>Account</th><th>Amount (₦)</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
           {% for w in withdrawals %}
           <tr>
             <td>{{ w['user_email'] }}</td>
+            <td>{{ w['name'] }}</td>
             <td>{{ w['bank'] }}</td>
+            <td>{{ w['account'] }}</td>
             <td>₦{{ '%.2f'|format(w['amount_ngn']) }}</td>
             <td>{{ w['status'] }}</td>
             <td>
@@ -86,7 +88,7 @@
             </td>
           </tr>
           {% else %}
-            <tr><td colspan="5" class="text-muted">No withdrawals</td></tr>
+            <tr><td colspan="7" class="text-muted">No withdrawals</td></tr>
           {% endfor %}
         </tbody>
       </table>
