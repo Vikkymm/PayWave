@@ -22,20 +22,24 @@ app.config['UPLOAD_FOLDER'] = UPLOADS
 app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8MB
 
 # ---------- Database helpers ----------
-def get_db():
-    if "db" not in g:
-        g.db = sqlite3.connect(DB)
-        g.db.row_factory = sqlite3.Row
-    return g.db
+import psycopg2
+import urllib.parse as up
 
-@app.teardown_appcontext
-def close_db(exc=None):
-    db = g.pop("db", None)
-    if db:
-        db.close()
+db_url = os.environ.get("DATABASE_URL")
 
-def init_db():
-    conn = sqlite3.connect(DB)
+if db_url:
+    up.uses_netloc.append("postgres")
+    url = up.urlparse(db_url)
+    conn = psycopg2.connect(
+        database=url.path[1:],
+        user=url.username,
+        password=url.password,
+        host=url.hostname,
+        port=url.port
+    )
+else:
+    import sqlite3
+    conn = sqlite3.connect("paywave.db", check_same_thread=False)
     c = conn.cursor()
     # Users table
     c.execute('''CREATE TABLE IF NOT EXISTS users(
