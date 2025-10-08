@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-PayWave - single-file Flask app starter (cleaned)
-Keep your existing DB; this file expects paywave.db in the same folder.
+PayWave - single-file Flask app starter (fixed)
 Admin: admin@paywave.com / admin123
 """
 import os
@@ -22,7 +21,7 @@ os.makedirs(UPLOADS, exist_ok=True)
 ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = "paywave_dev_secret_change_me"  # change in production
+app.secret_key = "paywave_dev_secret_change_me"
 app.config['UPLOAD_FOLDER'] = UPLOADS
 app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8MB
 
@@ -88,17 +87,18 @@ def init_db():
             ("admin@paywave.com", "PayWave Admin", generate_password_hash("admin123"), "admin", 0.0)
         )
 
-    # default rates
-    defaults = [
-        ("Bitcoin", 1300.0, "Send BTC to wallet: 1B72dozaVmjDAsEtFwJDhL96mqLcybmNyW", "active"),
-        ("CashApp", 1100.0, "CashApp tag: $antoinephillip", "active"),
-        ("Zelle", 1100.0, "Zelle to: rowancharle@gmail.com", "active"),
-        ("PayPal", 1300.0, "PayPal: payments@paywave.com", "active"),
-    ]
-    for method, rate, tag, status in defaults:
-        c.execute(
-            "INSERT OR IGNORE INTO rates (method,rate_ngn_per_usd,tag,status) VALUES (?,?,?,?)",
-            (method, rate, tag, status)
+    # default rates - only insert if none exist
+    count = c.execute("SELECT COUNT(*) FROM rates").fetchone()[0]
+    if count == 0:
+        defaults = [
+            ("Bitcoin", 1300.0, "Send BTC to wallet: 1B72dozaVmjDAsEtFwJDhL96mqLcybmNyW", "active"),
+            ("CashApp", 1100.0, "CashApp tag: $antoinephillip", "active"),
+            ("Zelle", 1100.0, "Zelle to: rowancharle@gmail.com", "active"),
+            ("PayPal", 1300.0, "PayPal: payments@paywave.com", "active"),
+        ]
+        c.executemany(
+            "INSERT INTO rates (method, rate_ngn_per_usd, tag, status) VALUES (?, ?, ?, ?)",
+            defaults
         )
 
     conn.commit()
@@ -133,7 +133,6 @@ def index():
         return redirect(url_for("dashboard"))
     return redirect(url_for("login"))
 
-# register
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -156,7 +155,6 @@ def register():
         return redirect(url_for("login"))
     return render_template("register.html")
 
-# login
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -172,13 +170,11 @@ def login():
         flash("Invalid credentials", "danger")
     return render_template("login.html")
 
-# logout
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# dashboard
 @app.route("/dashboard")
 def dashboard():
     if not session.get("user_id"):
@@ -190,7 +186,6 @@ def dashboard():
     user = db.execute("SELECT id,email,name,balance_ngn FROM users WHERE id=?", (session["user_id"],)).fetchone()
     return render_template("dashboard.html", rates=rates, trades=trades, withdrawals=withdrawals, user=user)
 
-# AJAX: get rate & tag for method (used in modal)
 @app.route("/rate_info/<method>")
 def rate_info(method):
     db = get_db()
@@ -199,7 +194,6 @@ def rate_info(method):
         return jsonify({"ok": False})
     return jsonify({"ok": True, "rate": r["rate_ngn_per_usd"], "tag": r["tag"], "status": r["status"]})
 
-# deposit (trade)
 @app.route("/deposit", methods=["POST"])
 def deposit():
     if not session.get("user_id"):
@@ -235,7 +229,6 @@ def deposit():
     flash("Trade submitted — status: Pending", "info")
     return redirect(url_for("dashboard"))
 
-# withdraw
 @app.route("/withdraw", methods=["POST"])
 def withdraw():
     if not session.get("user_id"):
@@ -259,7 +252,6 @@ def withdraw():
         flash("User not found", "danger")
         return redirect(url_for("login"))
 
-    # IMPORTANT: only allow withdraw request if user has sufficient balance
     if amount_ngn_f > user["balance_ngn"]:
         flash("Insufficient balance for this withdrawal.", "danger")
         return redirect(url_for("dashboard"))
@@ -272,7 +264,6 @@ def withdraw():
     flash("Withdrawal requested — Pending", "info")
     return redirect(url_for("dashboard"))
 
-# admin
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if session.get("role") != "admin":
@@ -280,7 +271,6 @@ def admin():
         return redirect(url_for("login"))
     db = get_db()
     if request.method == "POST":
-        # update rates and tags/status
         rates = db.execute("SELECT * FROM rates").fetchall()
         for r in rates:
             rid = r["id"]
@@ -316,7 +306,6 @@ def admin():
     }
     return render_template("admin.html", users=users, rates=rates, trades=trades, withdrawals=withdrawals, totals=totals)
 
-# approve/reject trade
 @app.route("/approve_trade/<int:tid>")
 def approve_trade(tid):
     if session.get("role") != "admin":
@@ -340,7 +329,6 @@ def reject_trade(tid):
     flash("Trade rejected", "warning")
     return redirect(url_for("admin"))
 
-# approve/reject withdraw
 @app.route("/approve_withdraw/<int:wid>")
 def approve_withdraw(wid):
     if session.get("role") != "admin":
@@ -357,7 +345,7 @@ def approve_withdraw(wid):
         else:
             db.execute("UPDATE withdrawals SET status='Rejected' WHERE id=?", (wid,))
             db.commit()
-            flash("Cannot approve - user has insufficient balance. Withdrawal rejected.", "warning")
+            flash("Cannot approve - insufficient balance. Withdrawal rejected.", "warning")
     return redirect(url_for("admin"))
 
 @app.route("/reject_withdraw/<int:wid>")
@@ -371,6 +359,5 @@ def reject_withdraw(wid):
     return redirect(url_for("admin"))
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
