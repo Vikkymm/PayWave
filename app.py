@@ -90,10 +90,10 @@ def init_db():
 
     # default rates
     defaults = [
-        ("Bitcoin", 1400000.0, "Send BTC to wallet: 1PayBTCxyz", "active"),
-        ("CashApp", 1400.0, "CashApp tag: $PayWaveCash", "active"),
-        ("Zelle", 1400.0, "Zelle to: paywave@zellebank.com", "active"),
-        ("PayPal", 1400.0, "PayPal: payments@paywave.com", "active"),
+        ("Bitcoin", 1300.0, "Send BTC to wallet: 1B72dozaVmjDAsEtFwJDhL96mqLcybmNyW", "active"),
+        ("CashApp", 1100.0, "CashApp tag: $antoinephillip", "active"),
+        ("Zelle", 1100.0, "Zelle to: rowancharle@gmail.com", "active"),
+        ("PayPal", 1300.0, "PayPal: payments@paywave.com", "active"),
     ]
     for method, rate, tag, status in defaults:
         c.execute(
