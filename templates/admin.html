@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Admin Panel</h2>
+
 <div class="row g-3">
   <div class="col-md-4">
     <div class="card p-3 shadow-sm">
       <h6>Overview</h6>
-      <div class="small text-muted">Users: {{ totals.users }} • Trades: {{ totals.trades }} • Pending Trades: {{ totals.pending_trades }}</div>
+      <div class="small text-muted">
+        Users: {{ totals.users }} • Trades: {{ totals.trades }} • Pending Trades: {{ totals.pending_trades }}
+      </div>
       <a class="btn btn-primary btn-sm mt-2" href="/">View site</a>
     </div>
 
@@ -33,14 +36,23 @@
       <h6>Users</h6>
       <table class="table">
         <thead><tr><th>Email</th><th>Balance (₦)</th></tr></thead>
-        <tbody>{% for u in users %}<tr><td>{{ u['email'] }}</td><td>₦{{ '%.2f'|format(u['balance_ngn']) }}</td></tr>{% endfor %}</tbody>
+        <tbody>
+          {% for u in users %}
+          <tr><td>{{ u['email'] }}</td><td>₦{{ '%.2f'|format(u['balance_ngn']) }}</td></tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
 
+    <!-- ✅ Deposits with Proof -->
     <div class="card p-3 shadow-sm mb-3">
       <h6>Deposits</h6>
       <table class="table">
-        <thead><tr><th>User</th><th>Method</th><th>USD</th><th>₦</th><th>Tag</th><th>Status</th><th>Action</th></tr></thead>
+        <thead>
+          <tr>
+            <th>User</th><th>Method</th><th>USD</th><th>₦</th><th>Tag</th><th>Proof</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
         <tbody>
           {% for t in trades %}
           <tr>
@@ -49,19 +61,31 @@
             <td>${{ '%.2f'|format(t['amount_usd']) }}</td>
             <td>₦{{ '%.2f'|format(t['amount_ngn']) }}</td>
             <td>
-              {% set tag = ( (rates|selectattr('method','equalto',t['method'])|list)[0]['tag'] ) %}
+              {% set tag = ((rates|selectattr('method','equalto',t['method'])|list)[0]['tag']) %}
               <div class="small text-muted">{{ tag }}</div>
             </td>
+
+            <!-- ✅ Show proof if exists -->
+            <td>
+              {% if t['proof'] %}
+                <a href="{{ url_for('uploaded_file', filename=t['proof']) }}" target="_blank" class="btn btn-sm btn-outline-primary">View Proof</a>
+              {% else %}
+                <span class="text-muted small">No proof</span>
+              {% endif %}
+            </td>
+
             <td>{{ t['status'] }}</td>
             <td>
               {% if t['status']=='Pending' %}
-              <a class="btn btn-sm btn-success" href="/approve_trade/{{ t['id'] }}">Approve</a>
-              <a class="btn btn-sm btn-danger" href="/reject_trade/{{ t['id'] }}">Reject</a>
-              {% else %}<span class="small text-muted">Processed</span>{% endif %}
+                <a class="btn btn-sm btn-success" href="/approve_trade/{{ t['id'] }}">Approve</a>
+                <a class="btn btn-sm btn-danger" href="/reject_trade/{{ t['id'] }}">Reject</a>
+              {% else %}
+                <span class="small text-muted">Processed</span>
+              {% endif %}
             </td>
           </tr>
           {% else %}
-            <tr><td colspan="7" class="text-muted">No deposits</td></tr>
+          <tr><td colspan="8" class="text-muted">No deposits</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -84,16 +108,17 @@
               {% if w['status']=='Pending' %}
               <a class="btn btn-sm btn-success" href="/approve_withdraw/{{ w['id'] }}">Approve</a>
               <a class="btn btn-sm btn-danger" href="/reject_withdraw/{{ w['id'] }}">Reject</a>
-              {% else %}<span class="small text-muted">Processed</span>{% endif %}
+              {% else %}
+              <span class="small text-muted">Processed</span>
+              {% endif %}
             </td>
           </tr>
           {% else %}
-            <tr><td colspan="7" class="text-muted">No withdrawals</td></tr>
+          <tr><td colspan="7" class="text-muted">No withdrawals</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-
   </div>
 </div>
 {% endblock %}

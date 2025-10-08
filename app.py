@@ -87,7 +87,7 @@ def init_db():
             ("admin@paywave.com", "PayWave Admin", generate_password_hash("admin123"), "admin", 0.0)
         )
 
-    # default rates - only insert if none exist
+    # insert default rates only if rates table is empty
     count = c.execute("SELECT COUNT(*) FROM rates").fetchone()[0]
     if count == 0:
         defaults = [
@@ -104,6 +104,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Only initialize DB file if it does not exist (so existing DB is preserved)
 if not os.path.exists(DB):
     init_db()
 
